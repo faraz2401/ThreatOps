@@ -53,20 +53,20 @@ pipeline {
     }
 
     post {
-        success {
-            slackSend(
-                webhookUrl: credentials('slack-webhook'),
-                channel: '#threatops-alerts',
-                message: '✅ ThreatOps pipeline SUCCESS'
-            )
-        }
-        failure {
-            slackSend(
-                webhookUrl: credentials('slack-webhook'),
-                channel: '#threatops-alerts',
-                message: '❌ ThreatOps pipeline FAILED'
-            )
-        }
+    success {
+        slackSend(
+            channel: '#threatops-alerts',
+            message: '✅ ThreatOps pipeline SUCCESS',
+            tokenCredentialId: 'slack-token'
+        )
     }
-}
+    failure {
+        slackSend(
+            channel: '#threatops-alerts',
+            message: '❌ ThreatOps pipeline FAILED',
+            tokenCredentialId: 'slack-token'
+        )
+         }
+   }
 
+}
