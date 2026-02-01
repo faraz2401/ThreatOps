@@ -43,20 +43,19 @@ pipeline {
     }
 
     post {
-        success {
-            sh '''
-            curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"✅ ThreatOps Pipeline SUCCESS\"}" \
-            $SLACK_WEBHOOK
-            '''
-        }
-        failure {
-            sh '''
-            curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"❌ ThreatOps Pipeline FAILED\"}" \
-            $SLACK_WEBHOOK
-            '''
-        }
+    success {
+        sh '''
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"✅ ThreatOps Pipeline SUCCESS\"}" \
+        "$SLACK_WEBHOOK" || true
+        '''
+    }
+    failure {
+        sh '''
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"❌ ThreatOps Pipeline FAILED\"}" \
+        "$SLACK_WEBHOOK" || true
+        '''
     }
 }
 
