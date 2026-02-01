@@ -8,6 +8,10 @@ pipeline {
                 checkout scm
             }
         }
+environment {
+    SLACK_WEBHOOK = credentials('slack-webhook')
+}
+
 
 stage('Chef System Preparation') {
     steps {
@@ -28,6 +32,7 @@ stage('Chef System Preparation') {
             }
         }
 
+
         stage('Run ThreatOps Analyzer') {
             steps {
                 sh '''
@@ -39,11 +44,19 @@ stage('Chef System Preparation') {
     }
 
     post {
-        success {
-            echo 'ThreatOps pipeline completed successfully'
-        }
-        failure {
-            echo 'ThreatOps pipeline failed'
-        }
+    success {
+        sh '''
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"✅ ThreatOps Pipeline SUCCESS\"}" \
+        $SLACK_WEBHOOK
+        '''
+    }
+    failure {
+        sh '''
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"❌ ThreatOps Pipeline FAILED\"}" \
+        $SLACK_WEBHOOK
+        '''
     }
 }
+
