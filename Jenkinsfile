@@ -56,7 +56,8 @@ pipeline {
             }
         }
     }
-post {
+
+    post {
     success {
         slackSend(
             channel: '#threatops-alerts',
