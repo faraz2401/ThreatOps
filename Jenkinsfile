@@ -56,20 +56,18 @@ pipeline {
             }
         }
     }
-
-    post {
-        success {
-            slackSend(
-                channel: '#threatops',
-                message: "✅ ThreatOps Pipeline SUCCESS - Build #${BUILD_NUMBER}"
-            )
-        }
-        failure {
-            slackSend(
-                channel: '#threatops',
-                message: "❌ ThreatOps Pipeline FAILED - Build #${BUILD_NUMBER}"
-            )
-        }
+post {
+    success {
+        slackSend(
+            channel: '#threatops-alerts',
+            message: '✅ ThreatOps pipeline SUCCESS'
+        )
+    }
+    failure {
+        slackSend(
+            channel: '#threatops-alerts',
+            message: '❌ ThreatOps pipeline FAILED'
+        )
     }
 }
 
