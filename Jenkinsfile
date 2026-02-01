@@ -36,14 +36,12 @@ pipeline {
             }
         }
 
-        stage('Analyze') {
+        stage('Test') {
             steps {
-                echo "Running ThreatOps analysis"
-                sh '''
-                ${VENV_DIR}/bin/python analyzer.py
-                '''
+                echo "Running unit checks (placeholder)"
             }
         }
+
 
         stage('Notify') {
             steps {
