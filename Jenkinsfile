@@ -30,15 +30,14 @@ pipeline {
         }
 
         stage('Configuration (Chef)') {
-    steps {
-        echo "Running Chef automation"
+            steps {
+                echo "Running Chef automation"
 
-        sh '''
-        sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb
-        '''
-             }
+                sh '''
+                sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb
+                '''
+            }
         }
-
 
         stage('Analyze') {
             steps {
@@ -58,17 +57,18 @@ pipeline {
     }
 
     post {
-    success {
-        slackSend(
-            channel: '#threatops-alerts',
-            message: '✅ ThreatOps pipeline SUCCESS'
-        )
-    }
-    failure {
-        slackSend(
-            channel: '#threatops-alerts',
-            message: '❌ ThreatOps pipeline FAILED'
-        )
+        success {
+            slackSend(
+                channel: '#threatops-alerts',
+                message: '✅ ThreatOps pipeline SUCCESS'
+            )
+        }
+        failure {
+            slackSend(
+                channel: '#threatops-alerts',
+                message: '❌ ThreatOps pipeline FAILED'
+            )
+        }
     }
 }
 
