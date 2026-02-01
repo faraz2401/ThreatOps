@@ -12,11 +12,10 @@ pipeline {
 stage('Chef System Preparation') {
     steps {
         sh '''
-        sudo chef-client --local-mode ~/Devops/threatops-chef/recipes/default.rb
+        sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb
         '''
     }
 }
-
 
         stage('Setup Python Environment') {
             steps {
