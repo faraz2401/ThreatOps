@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        SLACK_WEBHOOK = credentials('slack-webhook')
+    }
+
     stages {
 
         stage('Checkout Code') {
@@ -8,18 +12,14 @@ pipeline {
                 checkout scm
             }
         }
-environment {
-    SLACK_WEBHOOK = credentials('slack-webhook')
-}
 
-
-stage('Chef System Preparation') {
-    steps {
-        sh '''
-        sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb
-        '''
-    }
-}
+        stage('Chef System Preparation') {
+            steps {
+                sh '''
+                sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb
+                '''
+            }
+        }
 
         stage('Setup Python Environment') {
             steps {
@@ -32,7 +32,6 @@ stage('Chef System Preparation') {
             }
         }
 
-
         stage('Run ThreatOps Analyzer') {
             steps {
                 sh '''
@@ -44,19 +43,20 @@ stage('Chef System Preparation') {
     }
 
     post {
-    success {
-        sh '''
-        curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"✅ ThreatOps Pipeline SUCCESS\"}" \
-        $SLACK_WEBHOOK
-        '''
-    }
-    failure {
-        sh '''
-        curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"❌ ThreatOps Pipeline FAILED\"}" \
-        $SLACK_WEBHOOK
-        '''
+        success {
+            sh '''
+            curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"✅ ThreatOps Pipeline SUCCESS\"}" \
+            $SLACK_WEBHOOK
+            '''
+        }
+        failure {
+            sh '''
+            curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"❌ ThreatOps Pipeline FAILED\"}" \
+            $SLACK_WEBHOOK
+            '''
+        }
     }
 }
 
