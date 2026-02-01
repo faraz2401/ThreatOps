@@ -10,7 +10,6 @@ pipeline {
         stage('Build') {
             steps {
                 echo "Building ThreatOps environment"
-
                 sh '''
                 python3 -m venv ${VENV_DIR}
                 ${VENV_DIR}/bin/pip install --upgrade pip
@@ -22,7 +21,6 @@ pipeline {
         stage('Test') {
             steps {
                 echo "Running basic test"
-
                 sh '''
                 ${VENV_DIR}/bin/python analyzer.py
                 '''
@@ -32,7 +30,6 @@ pipeline {
         stage('Configuration (Chef)') {
             steps {
                 echo "Running Chef automation"
-
                 sh '''
                 sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb
                 '''
@@ -42,7 +39,6 @@ pipeline {
         stage('Analyze') {
             steps {
                 echo "Running ThreatOps analysis"
-
                 sh '''
                 ${VENV_DIR}/bin/python analyzer.py
                 '''
@@ -57,21 +53,20 @@ pipeline {
     }
 
     post {
-    success {
-        slackSend(
-            webhookUrl: credentials('slack-webhook'),
-            channel: '#threatops-alerts',
-            message: '✅ ThreatOps pipeline SUCCESS'
-        )
+        success {
+            slackSend(
+                webhookUrl: credentials('slack-webhook'),
+                channel: '#threatops-alerts',
+                message: '✅ ThreatOps pipeline SUCCESS'
+            )
+        }
+        failure {
+            slackSend(
+                webhookUrl: credentials('slack-webhook'),
+                channel: '#threatops-alerts',
+                message: '❌ ThreatOps pipeline FAILED'
+            )
+        }
     }
-    failure {
-        slackSend(
-            webhookUrl: credentials('slack-webhook'),
-            channel: '#threatops-alerts',
-            message: '❌ ThreatOps pipeline FAILED'
-        )
-    }
-}
-
 }
 
