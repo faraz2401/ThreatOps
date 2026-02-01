@@ -2,60 +2,73 @@ pipeline {
     agent any
 
     environment {
-        SLACK_WEBHOOK = credentials('slack-webhook')
+        VENV_DIR = "venv"
     }
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Build') {
             steps {
-                checkout scm
-            }
-        }
+                echo "Building ThreatOps environment"
 
-        stage('Chef System Preparation') {
-            steps {
                 sh '''
-                sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb
+                python3 -m venv ${VENV_DIR}
+                ${VENV_DIR}/bin/pip install --upgrade pip
+                ${VENV_DIR}/bin/pip install -r requirements.txt
                 '''
             }
         }
 
-        stage('Setup Python Environment') {
+        stage('Test') {
             steps {
+                echo "Running basic test"
+
                 sh '''
-                python3 -m venv venv
-                . venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
+                ${VENV_DIR}/bin/python analyzer.py
                 '''
             }
         }
 
-        stage('Run ThreatOps Analyzer') {
+        stage('Configuration (Chef)') {
+    steps {
+        echo "Running Chef automation"
+
+        sh '''
+        sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb
+        '''
+             }
+        }
+
+
+        stage('Analyze') {
             steps {
+                echo "Running ThreatOps analysis"
+
                 sh '''
-                . venv/bin/activate
-                python analyzer.py
+                ${VENV_DIR}/bin/python analyzer.py
                 '''
+            }
+        }
+
+        stage('Notify') {
+            steps {
+                echo "Sending Slack notification"
             }
         }
     }
 
     post {
         success {
-            sh '''
-            curl -s -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"ThreatOps Pipeline SUCCESS\"}" \
-            "$SLACK_WEBHOOK" || true
-            '''
+            slackSend(
+                channel: '#threatops',
+                message: "✅ ThreatOps Pipeline SUCCESS - Build #${BUILD_NUMBER}"
+            )
         }
         failure {
-            sh '''
-            curl -s -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"ThreatOps Pipeline FAILED\"}" \
-            "$SLACK_WEBHOOK" || true
-            '''
+            slackSend(
+                channel: '#threatops',
+                message: "❌ ThreatOps Pipeline FAILED - Build #${BUILD_NUMBER}"
+            )
         }
     }
 }
