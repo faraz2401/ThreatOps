@@ -9,6 +9,15 @@ pipeline {
             }
         }
 
+stage('Chef System Preparation') {
+    steps {
+        sh '''
+        sudo chef-client --local-mode ~/Devops/threatops-chef/recipes/default.rb
+        '''
+    }
+}
+
+
         stage('Setup Python Environment') {
             steps {
                 sh '''
