@@ -47,16 +47,21 @@ pipeline {
    
         stage('Deploy to EC2') {
     steps {
+        echo "Deploying ThreatOps to EC2"
+
         sh '''
         ssh -i ~/.ssh/jenkins_ec2 ubuntu@18.234.131.225 << 'EOF'
-            cd ~/Devops/ThreatOps
+            cd /home/ubuntu/ThreatOps || exit 1
             git pull origin master
+            python3 -m venv venv || true
             source venv/bin/activate
+            pip install -r requirements.txt
             python analyzer.py
         EOF
         '''
     }
 }
+
     }
 
     post {
