@@ -45,19 +45,18 @@ pipeline {
             }
         }
    
-        stage('Deploy to EC2') {
-    steps {
-        sshagent(credentials: ['jenkins_ec2']) {
-            sh '''
-              ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << EOF
-                cd /home/ubuntu/ThreatOps
-                git pull origin main
-                docker compose down
-                docker compose up -d --build
-              EOF
-            '''
-        }
+        stage('Deploy') {
+  steps {
+    sshagent(['jenkins-ec2']) {
+      sh '''
+        ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << 'EOF'
+        cd /home/ubuntu/Devops/ThreatOps
+        docker compose down
+        docker compose up -d --build
+        EOF
+      '''
     }
+  }
 }
 
     }
