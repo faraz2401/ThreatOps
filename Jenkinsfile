@@ -46,18 +46,19 @@ pipeline {
         }
    
         stage('Deploy') {
-  steps {
-    sshagent(['jenkins_ec2']) {
-      sh '''
-        ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << 'EOF'
-        cd /home/ubuntu/Devops/ThreatOps
-        docker compose down
-        docker compose up -d --build
-        EOF
-      '''
+    steps {
+        sshagent(['jenkins_ec2']) {
+            sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 '
+                cd ~/Devops/ThreatOps &&
+                docker compose down || true
+                docker compose up -d --build
+            '
+            '''
+        }
     }
-  }
 }
+
 
     }
 
