@@ -49,18 +49,18 @@ pipeline {
     steps {
         echo "Deploying ThreatOps to EC2"
 
-        sh '''
-        ssh -i ~/.ssh/jenkins_ec2 ubuntu@18.234.131.225 << 'EOF'
-            cd /home/ubuntu/ThreatOps || exit 1
-            git pull origin master
-            python3 -m venv venv || true
-            source venv/bin/activate
-            pip install -r requirements.txt
-            python analyzer.py
-        EOF
-        '''
+        sshagent(credentials: ['ec2-ssh-key']) {
+            sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << EOF
+              echo "Connected to EC2"
+              whoami
+              hostname
+            EOF
+            '''
+        }
     }
 }
+
 
     }
 
