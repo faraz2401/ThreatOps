@@ -47,20 +47,18 @@ pipeline {
    
         stage('Deploy to EC2') {
     steps {
-        echo "Deploying ThreatOps to EC2"
-
-        sshagent(credentials: ['ec2-ssh-key']) {
+        sshagent(credentials: ['jenkins-ec2']) {
             sh '''
-            ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << EOF
-              echo "Connected to EC2"
-              whoami
-              hostname
-            EOF
+              ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << EOF
+                cd /home/ubuntu/ThreatOps
+                git pull origin main
+                docker compose down
+                docker compose up -d --build
+              EOF
             '''
         }
     }
 }
-
 
     }
 
