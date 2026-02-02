@@ -47,7 +47,7 @@ pipeline {
    
         stage('Deploy') {
   steps {
-    sshagent(['jenkins-ec2']) {
+    sshagent(['jenkins_ec2']) {
       sh '''
         ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << 'EOF'
         cd /home/ubuntu/Devops/ThreatOps
