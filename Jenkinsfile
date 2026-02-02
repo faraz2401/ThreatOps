@@ -44,6 +44,19 @@ pipeline {
                 '''
             }
         }
+   
+        stage('Deploy to EC2') {
+    steps {
+        sh '''
+        ssh -i ~/.ssh/jenkins_ec2 ubuntu@18.234.131.225 << 'EOF'
+            cd ~/Devops/ThreatOps
+            git pull origin master
+            source venv/bin/activate
+            python analyzer.py
+        EOF
+        '''
+    }
+}
     }
 
     post {
