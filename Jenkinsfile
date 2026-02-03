@@ -3,72 +3,79 @@ pipeline {
 
     environment {
         VENV_DIR = "venv"
+        PYTHON = "${VENV_DIR}/bin/python"
+        PIP = "${VENV_DIR}/bin/pip"
+    }
+
+    options {
+        timestamps()
     }
 
     stages {
 
+        stage('Checkout') {
+            steps {
+                echo "📥 Checking out source code"
+                checkout scm
+            }
+        }
+
         stage('Build') {
             steps {
-                echo "Building ThreatOps environment"
+                echo "🔧 Building virtual environment"
                 sh '''
-                python3 -m venv ${VENV_DIR}
-                ${VENV_DIR}/bin/pip install --upgrade pip
-                ${VENV_DIR}/bin/pip install -r requirements.txt
+                    python3 -m venv ${VENV_DIR}
+                    ${PIP} install --upgrade pip
+                    ${PIP} install -r requirements.txt
                 '''
             }
         }
 
         stage('Test') {
             steps {
-                echo "Running basic sanity test"
+                echo "🧪 Running sanity tests"
                 sh '''
-                ${VENV_DIR}/bin/python -c "print('Test stage passed')"
-                '''
-            }
-        }
-
-        stage('Configuration (Chef)') {
-            steps {
-                echo "Running Chef automation"
-                sh '''
-                sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb || true
+                    ${PYTHON} -c "print('Basic test passed')"
                 '''
             }
         }
 
         stage('Analyze') {
             steps {
-                echo "Running ThreatOps analysis"
+                echo "🧠 Running ThreatOps analyzer"
                 sh '''
-                ${VENV_DIR}/bin/python analyzer.py
+                    ${PYTHON} analyzer.py
                 '''
             }
         }
-   
+
         stage('Deploy') {
-    steps {
-        sshagent(['jenkins_ec2']) {
-            sh '''
-            ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 '
-                cd ~/Devops/ThreatOps &&
-                docker compose down || true
-                docker compose up -d --build
-            '
-            '''
+            steps {
+                echo "🚀 Deploying to EC2"
+                sshagent(credentials: ['jenkins-ec2']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << 'EOF'
+                            cd ~/Devops/ThreatOps
+                            docker compose down || true
+                            docker compose up -d --build
+                        EOF
+                    '''
+                }
+            }
         }
-    }
-}
 
-
+        stage('Notify') {
+            steps {
+                echo "📣 Sending Slack notification"
+                slackSend(
+                    channel: '#threatops-alerts',
+                    message: '🚀 ThreatOps pipeline completed successfully'
+                )
+            }
+        }
     }
 
     post {
-        success {
-            slackSend(
-                channel: '#threatops-alerts',
-                message: '✅ ThreatOps pipeline SUCCESS'
-            )
-        }
         failure {
             slackSend(
                 channel: '#threatops-alerts',
@@ -78,3 +85,4 @@ pipeline {
     }
 }
 
+             
