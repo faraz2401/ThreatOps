@@ -7,12 +7,9 @@ pipeline {
     }
 
     environment {
-        // 🔧 Application
-        APP_NAME      = "ThreatOps"
-        VENV_DIR      = "venv"
-        ARTIFACT_DIR = "artifacts"
-
-        // Docker
+        APP_NAME       = "ThreatOps"
+        VENV_DIR       = "venv"
+        ARTIFACT_DIR  = "artifacts"
         DOCKER_COMPOSE = "docker compose"
     }
 
@@ -20,9 +17,8 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo "🔧 [BUILD] Setting up Python environment"
+                echo "🔧 [BUILD]"
                 sh '''
-                    set -e
                     python3 -m venv ${VENV_DIR}
                     ${VENV_DIR}/bin/pip install --upgrade pip
                     ${VENV_DIR}/bin/pip install -r requirements.txt
@@ -32,25 +28,16 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo "🧪 [TEST] Sanity check"
+                echo "🧪 [TEST]"
                 sh '''
-                    ${VENV_DIR}/bin/python -c "print('Tests passed')"
-                '''
-            }
-        }
-
-        stage('Configuration (Chef)') {
-            steps {
-                echo "🍳 [CHEF] Running Chef automation"
-                sh '''
-                    sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb || true
+                    ${VENV_DIR}/bin/python -c "print('Tests OK')"
                 '''
             }
         }
 
         stage('Analyze') {
             steps {
-                echo "🔍 [ANALYZE] Threat analysis"
+                echo "🔍 [ANALYZE]"
                 sh '''
                     mkdir -p ${ARTIFACT_DIR}
                     ${VENV_DIR}/bin/python analyzer.py
@@ -60,8 +47,25 @@ pipeline {
 
         stage('Archive Artifacts') {
             steps {
-                echo "📦 [ARCHIVE] Saving reports"
-                archiveArtifacts artifacts: '${ARTIFACT_DIR}/**', fingerprint: true
+                archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+            }
+        }
+
+        stage('Chef Configuration (REMOTE)') {
+            environment {
+                EC2_HOST = credentials('ec2_host')
+                EC2_USER = credentials('ec2_user')
+            }
+            steps {
+                echo "🍳 [CHEF] Applying configuration on EC2"
+                sshagent(['jenkins_ec2']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
+                            cd ~/chef/threatops-chef &&
+                            sudo chef-client --local-mode recipes/default.rb
+                        "
+                    '''
+                }
             }
         }
 
@@ -71,11 +75,11 @@ pipeline {
                 EC2_USER = credentials('ec2_user')
             }
             steps {
-                echo "🚀 [DEPLOY] Deploying to EC2"
+                echo "🚀 [DEPLOY]"
                 sshagent(['jenkins_ec2']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
-                            cd /home/${EC2_USER}/Devops/ThreatOps &&
+                            cd ~/Devops/ThreatOps &&
                             ${DOCKER_COMPOSE} down || true &&
                             ${DOCKER_COMPOSE} up -d --build
                         "
