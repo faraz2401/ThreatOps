@@ -1,13 +1,19 @@
 import sys
 
-print("ThreatOps initialized")
+def run_analysis():
+    print("🔍 Running ThreatOps analysis...")
 
-threats_found = False   # change this based on real logic
+    # Simulated logic (we'll improve later)
+    threats_found = False   # change to True to test failure
 
-# Example logic (replace with real detection)
-if threats_found:
-    print("🚨 Threats detected")
-    sys.exit(2)   # non-zero = Jenkins FAILURE
-else:
-    print("✅ No threats found")
-    sys.exit(0)   # zero = Jenkins SUCCESS
+    if threats_found:
+        print("🚨 THREAT DETECTED!")
+        return 1
+    else:
+        print("✅ No threats found")
+        return 0
+
+if __name__ == "__main__":
+    exit_code = run_analysis()
+    sys.exit(exit_code)
+

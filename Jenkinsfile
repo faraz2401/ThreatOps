@@ -48,13 +48,15 @@ pipeline {
         }
 
         stage('Analyze') {
-            steps {
-                echo "🔍 Running ThreatOps analyzer"
-                sh '''
-                    ${PYTHON} analyzer.py
-                '''
-            }
-        }
+    steps {
+        echo "🔍 ThreatOps security gate"
+        sh '''
+            set -e
+            ${VENV_DIR}/bin/python analyzer.py
+        '''
+    }
+}
+
 
         stage('Deploy') {
             steps {
