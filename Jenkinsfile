@@ -2,20 +2,17 @@ pipeline {
     agent any
 
     options {
-        timestamps()          // STEP #22
+        timestamps()
         ansiColor('xterm')
     }
 
     environment {
         // 🔧 Application
-        APP_NAME       = "ThreatOps"
-        VENV_DIR       = "venv"
-        ARTIFACT_DIR  = "artifacts"
+        APP_NAME      = "ThreatOps"
+        VENV_DIR      = "venv"
+        ARTIFACT_DIR = "artifacts"
 
-        // 🚀 Deployment
-        EC2_USER       = "ubuntu"
-        EC2_HOST       = "18.234.131.225"
-        APP_DIR        = "/home/ubuntu/Devops/ThreatOps"
+        // Docker
         DOCKER_COMPOSE = "docker compose"
     }
 
@@ -23,9 +20,9 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo "🔧 [BUILD] Preparing Python environment"
+                echo "🔧 [BUILD] Setting up Python environment"
                 sh '''
-                    set -x
+                    set -e
                     python3 -m venv ${VENV_DIR}
                     ${VENV_DIR}/bin/pip install --upgrade pip
                     ${VENV_DIR}/bin/pip install -r requirements.txt
@@ -35,19 +32,17 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo "🧪 [TEST] Running sanity tests"
+                echo "🧪 [TEST] Sanity check"
                 sh '''
-                    set -x
-                    ${VENV_DIR}/bin/python -c "print('Test stage OK')"
+                    ${VENV_DIR}/bin/python -c "print('Tests passed')"
                 '''
             }
         }
 
         stage('Configuration (Chef)') {
             steps {
-                echo "🍳 [CHEF] Applying system configuration"
+                echo "🍳 [CHEF] Running Chef automation"
                 sh '''
-                    set -x
                     sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb || true
                 '''
             }
@@ -55,9 +50,8 @@ pipeline {
 
         stage('Analyze') {
             steps {
-                echo "🔍 [ANALYZE] Running ThreatOps analyzer"
+                echo "🔍 [ANALYZE] Threat analysis"
                 sh '''
-                    set -x
                     mkdir -p ${ARTIFACT_DIR}
                     ${VENV_DIR}/bin/python analyzer.py
                 '''
@@ -66,19 +60,22 @@ pipeline {
 
         stage('Archive Artifacts') {
             steps {
-                echo "📦 [ARCHIVE] Archiving analyzer outputs"
+                echo "📦 [ARCHIVE] Saving reports"
                 archiveArtifacts artifacts: '${ARTIFACT_DIR}/**', fingerprint: true
             }
         }
 
         stage('Deploy') {
+            environment {
+                EC2_HOST = credentials('ec2_host')
+                EC2_USER = credentials('ec2_user')
+            }
             steps {
-                echo "🚀 [DEPLOY] Deploying ${APP_NAME} to EC2"
+                echo "🚀 [DEPLOY] Deploying to EC2"
                 sshagent(['jenkins_ec2']) {
                     sh '''
-                        set -x
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
-                            cd ${APP_DIR} &&
+                            cd /home/${EC2_USER}/Devops/ThreatOps &&
                             ${DOCKER_COMPOSE} down || true &&
                             ${DOCKER_COMPOSE} up -d --build
                         "
@@ -90,15 +87,12 @@ pipeline {
 
     post {
         success {
-            echo "✅ ${APP_NAME} pipeline SUCCESS"
             slackSend(
                 channel: '#threatops-alerts',
                 message: "✅ ${APP_NAME} pipeline SUCCESS"
             )
         }
-
         failure {
-            echo "❌ ${APP_NAME} pipeline FAILED"
             slackSend(
                 channel: '#threatops-alerts',
                 message: "❌ ${APP_NAME} pipeline FAILED"
