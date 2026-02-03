@@ -3,12 +3,10 @@ pipeline {
 
     environment {
         VENV_DIR = "venv"
-        PYTHON = "${VENV_DIR}/bin/python"
-        PIP = "${VENV_DIR}/bin/pip"
-    }
-
-    options {
-        timestamps()
+        PYTHON   = "${VENV_DIR}/bin/python"
+        PIP      = "${VENV_DIR}/bin/pip"
+        EC2_USER = "ubuntu"
+        EC2_IP   = "18.234.131.225"
     }
 
     stages {
@@ -22,7 +20,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo "🔧 Building virtual environment"
+                echo "🔧 Building ThreatOps environment"
                 sh '''
                     python3 -m venv ${VENV_DIR}
                     ${PIP} install --upgrade pip
@@ -35,14 +33,23 @@ pipeline {
             steps {
                 echo "🧪 Running sanity tests"
                 sh '''
-                    ${PYTHON} -c "print('Basic test passed')"
+                    ${PYTHON} -c "print('✅ Test stage passed')"
+                '''
+            }
+        }
+
+        stage('Configuration') {
+            steps {
+                echo "⚙️ Running Chef configuration"
+                sh '''
+                    sudo chef-client --local-mode /home/faraz24/Devops/threatops-chef/recipes/default.rb || true
                 '''
             }
         }
 
         stage('Analyze') {
             steps {
-                echo "🧠 Running ThreatOps analyzer"
+                echo "🔍 Running ThreatOps analyzer"
                 sh '''
                     ${PYTHON} analyzer.py
                 '''
@@ -52,30 +59,27 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo "🚀 Deploying to EC2"
-                sshagent(credentials: ['jenkins-ec2']) {
+                sshagent(credentials: ['jenkins_ec2']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@18.234.131.225 << 'EOF'
-                            cd ~/Devops/ThreatOps
-                            docker compose down || true
-                            docker compose up -d --build
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} << EOF
+                          set -e
+                          cd ~/Devops/ThreatOps
+                          docker compose down || true
+                          docker compose up -d --build
                         EOF
                     '''
                 }
             }
         }
-
-        stage('Notify') {
-            steps {
-                echo "📣 Sending Slack notification"
-                slackSend(
-                    channel: '#threatops-alerts',
-                    message: '🚀 ThreatOps pipeline completed successfully'
-                )
-            }
-        }
     }
 
     post {
+        success {
+            slackSend(
+                channel: '#threatops-alerts',
+                message: '✅ ThreatOps pipeline SUCCESS'
+            )
+        }
         failure {
             slackSend(
                 channel: '#threatops-alerts',
@@ -85,4 +89,3 @@ pipeline {
     }
 }
 
-             
