@@ -60,14 +60,14 @@ pipeline {
             steps {
                 echo "🚀 Deploying to EC2"
                 sshagent(credentials: ['jenkins_ec2']) {
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} << EOF
-                          set -e
-                          cd ~/Devops/ThreatOps
-                          docker compose down || true
-                          docker compose up -d --build
-                        EOF
-                    '''
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} '
+                            set -e
+                            cd ~/Devops/ThreatOps
+                            docker compose down || true
+                            docker compose up -d --build
+                        '
+                    """
                 }
             }
         }
