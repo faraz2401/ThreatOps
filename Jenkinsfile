@@ -2,40 +2,39 @@ pipeline {
     agent any
 
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
 
-        stage('Setup Python') {
+        stage('Setup Python venv') {
             steps {
                 sh '''
-                    python3 --version
-                    python3 -m venv venv || true
+                    python3 -m venv venv
                     . venv/bin/activate
                     pip install --upgrade pip
-                    pip install -r requirements.txt pyyaml
+                    pip install -r requirements.txt
                 '''
             }
         }
 
-        stage('Run Analyzer') {
+        stage('Run ThreatOps Analyzer') {
             steps {
                 sh '''
                     . venv/bin/activate
-                    python3 analyzer.py
+                    python analyzer.py
                 '''
             }
         }
     }
 
     post {
-        success {
-            echo 'ThreatOps analysis PASSED'
+        always {
+            archiveArtifacts artifacts: 'artifacts/analysis.json', fingerprint: true
         }
-
         failure {
-            echo 'ThreatOps analysis FAILED – blocking pipeline'
-        }
-
-        unstable {
-            echo 'ThreatOps analysis UNSTABLE – review findings'
+            error "❌ ThreatOps Analyzer failed — build blocked"
         }
     }
 }
