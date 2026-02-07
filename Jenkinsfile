@@ -87,6 +87,22 @@ pipeline {
                 }
             }
         }
+            stage('Configuration (Chef)') {
+    steps {
+        echo "Running Chef automation"
+        sh '''
+        sudo chef-client --local-mode recipes/default.rb \
+          --log_level info \
+          --logfile /var/log/threatops_chef.log
+        '''
+        sh '''
+        grep "SUCCESS" /var/log/threatops_chef_status.txt
+        '''
+    }
+}
+
+
+
     }
 
     post {
