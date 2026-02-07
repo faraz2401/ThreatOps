@@ -8,13 +8,13 @@ pipeline {
             }
         }
 
-        stage('Setup Python venv') {
+        stage('Setup Python') {
             steps {
                 sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
+                python3 -m venv venv
+                source venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
                 '''
             }
         }
@@ -22,19 +22,22 @@ pipeline {
         stage('Run ThreatOps Analyzer') {
             steps {
                 sh '''
-                    . venv/bin/activate
-                    python analyzer.py
+                source venv/bin/activate
+                python analyzer.py
                 '''
             }
         }
     }
 
     post {
-        always {
-            archiveArtifacts artifacts: 'artifacts/analysis.json', fingerprint: true
+        success {
+            echo "ThreatOps Analyzer PASSED"
         }
         failure {
-            error "❌ ThreatOps Analyzer failed — build blocked"
+            echo "ThreatOps Analyzer FAILED"
+        }
+        always {
+            archiveArtifacts artifacts: 'artifacts/*.json', fingerprint: true
         }
     }
 }
