@@ -9,24 +9,22 @@ pipeline {
         }
 
         stage('Setup Python') {
-            steps {
-                sh '''
-                python3 -m venv venv
-                source venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
-                '''
-            }
-        }
+    steps {
+        sh '''
+            python3 -m venv venv
+            venv/bin/pip install -r requirements.txt
+        '''
+    }
+}
 
         stage('Run ThreatOps Analyzer') {
-            steps {
-                sh '''
-                source venv/bin/activate
-                python analyzer.py
-                '''
-            }
-        }
+    steps {
+        sh '''
+            venv/bin/python analyzer.py
+        '''
+    }
+}
+
     }
 
     post {
