@@ -1,122 +1,41 @@
 pipeline {
     agent any
 
-    options {
-        timestamps()
-        ansiColor('xterm')
-    }
-
-    environment {
-        APP_NAME       = "ThreatOps"
-        VENV_DIR       = "venv"
-        ARTIFACT_DIR  = "artifacts"
-        DOCKER_COMPOSE = "docker compose"
-    }
-
     stages {
 
-        stage('Build') {
+        stage('Setup Python') {
             steps {
-                echo "🔧 [BUILD]"
                 sh '''
-                    python3 -m venv ${VENV_DIR}
-                    ${VENV_DIR}/bin/pip install --upgrade pip
-                    ${VENV_DIR}/bin/pip install -r requirements.txt
+                    python3 --version
+                    python3 -m venv venv || true
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt pyyaml
                 '''
             }
         }
 
-        stage('Test') {
+        stage('Run Analyzer') {
             steps {
-                echo "🧪 [TEST]"
                 sh '''
-                    ${VENV_DIR}/bin/python -c "print('Tests OK')"
+                    . venv/bin/activate
+                    python3 analyzer.py
                 '''
             }
         }
-
-        stage('Analyze') {
-            steps {
-                echo "🔍 [ANALYZE]"
-                sh '''
-                    mkdir -p ${ARTIFACT_DIR}
-                    ${VENV_DIR}/bin/python analyzer.py
-                '''
-            }
-        }
-
-        stage('Archive Artifacts') {
-            steps {
-                archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
-            }
-        }
-
-        stage('Chef Configuration (REMOTE)') {
-            environment {
-                EC2_HOST = credentials('ec2_host')
-                EC2_USER = credentials('ec2_user')
-            }
-            steps {
-                echo "🍳 [CHEF] Applying configuration on EC2"
-                sshagent(['jenkins_ec2']) {
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
-                            cd ~/chef/threatops-chef &&
-                            sudo chef-client --local-mode recipes/default.rb
-                        "
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy') {
-            environment {
-                EC2_HOST = credentials('ec2_host')
-                EC2_USER = credentials('ec2_user')
-            }
-            steps {
-                echo "🚀 [DEPLOY]"
-                sshagent(['jenkins_ec2']) {
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
-                            cd ~/Devops/ThreatOps &&
-                            ${DOCKER_COMPOSE} down || true &&
-                            ${DOCKER_COMPOSE} up -d --build
-                        "
-                    '''
-                }
-            }
-        }
-            stage('Configuration (Chef)') {
-    steps {
-        echo "Running Chef automation"
-        sh '''
-        sudo chef-client --local-mode recipes/default.rb \
-          --log_level info \
-          --logfile /var/log/threatops_chef.log
-        '''
-        sh '''
-        grep "SUCCESS" /var/log/threatops_chef_status.txt
-        '''
-    }
-}
-
-
-
     }
 
     post {
         success {
-            slackSend(
-                channel: '#threatops-alerts',
-                message: "✅ ${APP_NAME} pipeline SUCCESS"
-            )
+            echo 'ThreatOps analysis PASSED'
         }
+
         failure {
-            slackSend(
-                channel: '#threatops-alerts',
-                message: "❌ ${APP_NAME} pipeline FAILED"
-            )
+            echo 'ThreatOps analysis FAILED – blocking pipeline'
+        }
+
+        unstable {
+            echo 'ThreatOps analysis UNSTABLE – review findings'
         }
     }
 }

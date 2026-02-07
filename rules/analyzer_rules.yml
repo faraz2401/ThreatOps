@@ -1,0 +1,15 @@
+thresholds:
+  critical: 1
+  high: 3
+  medium: 5
+
+exit_codes:
+  pass: 0
+  unstable: 2
+  fail: 1
+
+messages:
+  pass: "Analysis PASSED"
+  unstable: "Analysis UNSTABLE – review findings"
+  fail: "Analysis FAILED – blocking pipeline"
+
