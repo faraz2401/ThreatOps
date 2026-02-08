@@ -1,6 +1,7 @@
-{
-  "tool": "ThreatOps Analyzer",
-  "timestamp": "2026-02-08T06:25:43.554193Z",
-  "total_findings": 0,
-  "findings": []
-}
+[
+  {
+    "id": "RULE-003",
+    "severity": "MEDIUM",
+    "description": "Verbose logging"
+  }
+]
