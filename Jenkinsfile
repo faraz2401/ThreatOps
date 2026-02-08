@@ -20,7 +20,8 @@ pipeline {
         stage('Run ThreatOps Analyzer') {
     steps {
         sh '''
-            venv/bin/python analyzer.py
+            source venv/bin/activate
+            python analyzer.py
         '''
     }
 }

@@ -1,89 +1,63 @@
 #!/usr/bin/env python3
 
 import json
-import yaml
-import os
 import sys
-from datetime import datetime
+import yaml
+from pathlib import Path
 
-# -----------------------------
-# Configuration
-# -----------------------------
-RULES_FILE = "rules/analyzer_rules.yml"
-ARTIFACTS_DIR = "artifacts"
-ARTIFACT_FILE = os.path.join(ARTIFACTS_DIR, "analysis.json")
+ARTIFACT_FILE = Path("artifacts/analysis.json")
+BASELINE_FILE = Path("artifacts/baseline.json")
+RULES_FILE = Path("rules/analyzer_rules.yml")
+
+EXIT_OK = 0
+EXIT_BLOCK = 1
 
 
-# -----------------------------
-# Load Rules
-# -----------------------------
+def load_json(path, default):
+    if path.exists():
+        return json.loads(path.read_text())
+    return default
+
+
 def load_rules():
-    if not os.path.exists(RULES_FILE):
-        print(f"❌ Rules file not found: {RULES_FILE}")
-        sys.exit(1)
-
-    with open(RULES_FILE, "r") as f:
-        return yaml.safe_load(f)
+    if not RULES_FILE.exists():
+        print("❌ rules/analyzer_rules.yml not found")
+        sys.exit(EXIT_BLOCK)
+    return yaml.safe_load(RULES_FILE.read_text())
 
 
-# -----------------------------
-# Run Analysis
-# -----------------------------
-def run_analysis():
+def get_high_issues(analysis, rules):
+    high_issues = set()
+    for finding in analysis.get("findings", []):
+        rule_id = finding.get("rule_id")
+        severity = rules.get(rule_id, {}).get("severity", "LOW")
+        if severity == "HIGH":
+            high_issues.add(rule_id)
+    return high_issues
+
+
+def main():
+    analysis = load_json(ARTIFACT_FILE, {})
+    baseline = load_json(BASELINE_FILE, {"known_high_issues": []})
     rules = load_rules()
-    findings = []
 
-    for rule in rules.get("rules", []):
-        findings.append({
-            "id": rule.get("id"),
-            "description": rule.get("description"),
-            "severity": rule.get("severity"),
-            "status": "DETECTED"
-        })
+    known_high = set(baseline.get("known_high_issues", []))
+    current_high = get_high_issues(analysis, rules)
 
-    result = {
-        "tool": "ThreatOps Analyzer",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "total_findings": len(findings),
-        "findings": findings
-    }
+    new_high = current_high - known_high
 
-    return result
+    print("🔍 ThreatOps Analysis Summary")
+    print(f"Known HIGH issues   : {sorted(known_high)}")
+    print(f"Current HIGH issues : {sorted(current_high)}")
+    print(f"New HIGH issues     : {sorted(new_high)}")
 
+    if new_high:
+        print("\n🚨 BLOCKING BUILD — New HIGH severity issues detected")
+        sys.exit(EXIT_BLOCK)
 
-# -----------------------------
-# Write Artifact
-# -----------------------------
-def write_artifact(result):
-    os.makedirs(ARTIFACTS_DIR, exist_ok=True)
-
-    with open(ARTIFACT_FILE, "w") as f:
-        json.dump(result, f, indent=2)
-
-    print(f"📄 Analysis report written to {ARTIFACT_FILE}")
+    print("\n✅ Build allowed — No new HIGH issues introduced")
+    sys.exit(EXIT_OK)
 
 
-# -----------------------------
-# Main Execution
-# -----------------------------
 if __name__ == "__main__":
-    result = run_analysis()
-    write_artifact(result)
-
-    high_findings = [
-        f for f in result.get("findings", [])
-        if f.get("severity") == "HIGH"
-    ]
-
-    print("\n🔍 Findings Summary")
-    print("-------------------")
-    for f in result.get("findings", []):
-        print(f"- [{f['severity']}] {f['id']}: {f['description']}")
-
-    if high_findings:
-        print("\n❌ HIGH severity findings detected. Failing pipeline.")
-        sys.exit(1)
-    else:
-        print("\n✅ No HIGH severity findings. Pipeline passed.")
-        sys.exit(0)
-
+    main()

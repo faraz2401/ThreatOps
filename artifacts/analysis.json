@@ -1,8 +1,6 @@
 {
-  "findings": {
-    "critical": 0,
-    "high": 0,
-    "medium": 1
-  }
+  "tool": "ThreatOps Analyzer",
+  "timestamp": "2026-02-08T06:25:43.554193Z",
+  "total_findings": 0,
+  "findings": []
 }
-

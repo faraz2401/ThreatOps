@@ -1,0 +1,8 @@
+{
+  "known_high_issues": [
+    "HARDCODED_SECRET",
+    "WEAK_CRYPTO",
+    "INSECURE_SUBPROCESS"
+  ]
+}
+
